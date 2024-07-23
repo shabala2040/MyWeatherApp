@@ -1,7 +1,196 @@
 ﻿@page "/"
+@rendermode InteractiveServer
 
 <PageTitle>Home</PageTitle>
+<h1>Welcome to your Weather Buddy!</h1>
+<h4>To start, enter a city and select a state. Then press the GO button.</h4>
+<label>City</label>
+<input type="text" @bind="@cityName" />
+<br />
+<label>State</label>
+<select name="stateCodes" type="text" @bind="@state">
+    <option value="alabama">Alabama</option>
+    <option value="alaska">Alaska</option>
+    <option value="arizona">Arizona</option>
+    <option value="arkansas">Arkansas</option>
+    <option value="california">California</option>
+    <option value="colorado">Colorado</option>
+    <option value="connecticut">Connecticut</option>
+    <option value="delaware">Delaware</option>
+    <option value="florida">Florida</option>
+    <option value="georgia">Georgia</option>
+    <option value="hawaii">Hawaii</option>
+    <option value="idaho">Idaho</option>
+    <option value="illinois">Illinois</option>
+    <option value="indiana">Indiana</option>
+    <option value="iowa">Iowa</option>
+    <option value="kansas">Kansas</option>
+    <option value="kentucky">Kentucky</option>
+    <option value="louisiana">Louisiana</option>
+    <option value="maine">Maine</option>
+    <option value="maryland">Maryland</option>
+    <option value="massachusetts">Massachusetts</option>
+    <option value="michigan">Michigan</option>
+    <option value="minnesota">Minnesota</option>
+    <option value="mississippi">Mississippi</option>
+    <option value="missouri">Missouri</option>
+    <option value="montana">Montana</option>
+    <option value="nebraska">Nebraska</option>
+    <option value="nevada">Nevada</option>
+    <option value="new hampshire">New Hampshire</option>
+    <option value="new jersey">New Jersey</option>
+    <option value="new mexico">New Mexico</option>
+    <option value="new york">New York</option>
+    <option value="north carolina">North Carolina</option>
+    <option value="north dakota">North Dakota</option>
+    <option value="ohio">Ohio</option>
+    <option value="oklahoma">Oklahoma</option>
+    <option value="oregon">Oregon</option>
+    <option value="pennsylvania">Pennsylvania</option>
+    <option value="rhode island">Rhode Island</option>
+    <option value="south carolina">South Carolina</option>
+    <option value="south dakota">South Dakota</option>
+    <option value="tennessee">Tennessee</option>
+    <option value="texas">Texas</option>
+    <option value="utah">Utah</option>
+    <option value="vermont">Vermont</option>
+    <option value="virginia">Virginia</option>
+    <option value="washington">Washington</option>
+    <option value="west virginia">West Virginia</option>
+    <option value="wisconson">Wisconson</option>
+    <option value="wyoming">Wyoming</option>
+</select>
+<br />
+<button class="btn btn-primary" @onclick="ProcessInput">GO</button>
+<br />
+@if (errorString != "")
+{
+    <p>@errorString</p>
+}
 
-<h1>Hello, world!</h1>
+@code {
+    public string? cityName { get; set; }
+    public string? state { get; set; }
+    public string? errorString { get; set; } = string.Empty;
+    public GeocodeMapLocation? foundLocation { get; set; }
+    public NWSPointProperties? point { get; set; }
 
-Welcome to your new app.
+    /// <summary>
+    /// Process the user input in the city name text field.
+    /// - Validates proper format of text
+    /// - Makes API call to geocode.maps.co
+    /// - Verifies the city and state given by user match the API response
+    /// - Makes an API call to NWS with the lat/lon to get relevant weather URLs
+    /// - Makes API calls to NWS with the relevant weather URLs to populate page with data
+    /// - Handles any exceptions that occur
+    /// </summary>
+    public void ProcessInput()
+    {
+        // TODO try catch will go in here
+        try
+        {
+            ValidateInput();
+            GetLatAndLon();
+            point = GetForecastURLs();
+
+        }
+        catch
+        {
+
+        }
+        // TODO make a bunch of calls to do all of above functions
+
+    }
+
+    /// <summary>
+    /// Validates that the city name input by user is of a valid format.
+    /// A valid format for a city name includes upper and lowercase characters, punctuation, and whitespace.
+    /// An invalid format for a city name generates a relevant exception.
+    /// </summary>
+    /// <exception cref="Exception"></exception>
+    public void ValidateInput()
+    {
+        // Makes sure the city name has a value and is not just white space
+        if (String.IsNullOrWhiteSpace(cityName))
+        {
+            throw new InvalidCityOrStateException("Invalid city name.");
+        }
+
+        // Makes sure each letter in the city name is one of the following: uppercase/lowercase letter, punctuation, or whitespace
+        foreach (char letter in cityName)
+        {
+            if (!Char.IsAsciiLetter(letter) && letter != '.' && letter != '\'' && letter != '-' && !Char.IsWhiteSpace(letter))
+                throw new InvalidCityOrStateException($"Invalid city name.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the NWSPoint for the given lat/lon. This is done via an API call and deserializing the resulting JSON obj
+    /// </summary>
+    /// <param name="location">location object represents city and state</param>
+    /// <returns></returns>
+    public NWSPointProperties GetForecastURLs()
+    {
+        NWSPointProperties nwsPoint;
+
+        HttpClient locationClient = new HttpClient();
+        locationClient.BaseAddress = new Uri("https://api.weather.gov/");
+        locationClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
+        locationClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
+        HttpResponseMessage response = locationClient.GetAsync($"/points/{foundLocation.latitude},{foundLocation.longitude}").Result;
+
+        if (response != null && response.IsSuccessStatusCode)
+        {
+            nwsPoint = response.Content.ReadFromJsonAsync<NWSPointProperties>().Result;
+            return nwsPoint;
+
+        } else
+        {
+            throw new HttpRequestException(response.ReasonPhrase);
+        }
+
+
+
+    }
+
+    /// <summary>
+    /// Gets the lat/lon of the given city and state. This is done via an API call to geocode.maps and
+    /// deserializing the resulting JSON obj.
+    /// </summary>
+    public void GetLatAndLon()
+    {
+
+        // Generate new HttpClient, set base address for geocode.maps API
+        HttpClient latLonClient = new HttpClient();
+        latLonClient.BaseAddress = new Uri("https://geocode.maps.co/");
+
+        // Generate a response, do it synchronously, this is the only thing we care about
+        HttpResponseMessage response = latLonClient.GetAsync($"search?city={cityName.Replace(' ', '+').ToLower()}&state={state.Replace(' ', '+').ToLower()}&country=US&api_key=669f4abe7921a061435276bwl2147a6").Result;
+
+        // If we receive an unsuccessful response, throw an exception with a reason
+        if (!response.IsSuccessStatusCode)
+            throw new Exception(response.ReasonPhrase);
+
+        List<GeocodeMapLocation> matchedLocations = JsonSerializer.Deserialize<List<GeocodeMapLocation>>(response.Content.ReadAsStream());
+        // Deserialize the response and put it in the GeocodeMaps
+        //GeocodeMaps matchedLocations = response.Content.ReadFromJsonAsync<GeocodeMaps>().Result;
+        GetLocation(matchedLocations);
+
+
+    }
+
+    public void GetLocation(List<GeocodeMapLocation> matchedLocations)
+    {
+        foreach (var location in matchedLocations)
+        {
+            if (location.location.ToLower().Contains(cityName) && location.location.ToLower().Contains(state))
+            {
+                foundLocation = location;
+                return;
+            }
+        }
+
+        throw new NoLocationMatched($"A matching location was not found for {cityName}, {state}.");
+    }
+    }
+

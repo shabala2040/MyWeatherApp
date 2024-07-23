@@ -1,0 +1,41 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/obj/Debug/net8.0/scopedcss/projectbundle/MyWeatherApp.bundle.scp.css",
+      "PackagePath": "staticwebassets/MyWeatherApp.bundle.scp.css"
+    },
+    {
+      "Id": "/Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/wwwroot/app.css",
+      "PackagePath": "staticwebassets/app.css"
+    },
+    {
+      "Id": "/Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/wwwroot/bootstrap/bootstrap.min.css",
+      "PackagePath": "staticwebassets/bootstrap/bootstrap.min.css"
+    },
+    {
+      "Id": "/Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/wwwroot/bootstrap/bootstrap.min.css.map",
+      "PackagePath": "staticwebassets/bootstrap/bootstrap.min.css.map"
+    },
+    {
+      "Id": "/Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/wwwroot/favicon.png",
+      "PackagePath": "staticwebassets/favicon.png"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.MyWeatherApp.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.MyWeatherApp.props",
+      "PackagePath": "build\\MyWeatherApp.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.MyWeatherApp.props",
+      "PackagePath": "buildMultiTargeting\\MyWeatherApp.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.MyWeatherApp.props",
+      "PackagePath": "buildTransitive\\MyWeatherApp.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
