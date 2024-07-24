@@ -1,6 +1,4 @@
-﻿using System.Reflection.PortableExecutable;
-using Microsoft.AspNetCore.Http;
-using MyWeatherApp.Components.Pages;
+﻿using MyWeatherApp.Components.Pages;
 using MyWeatherApp.Models;
 
 namespace WeatherAppTests;
@@ -16,7 +14,7 @@ public class WeatherAppTest
     {
         Home test = new Home();
         test.cityName = cityName;
-        test.state = state;
+        test.stateName = state;
         try
         {
             test.ValidateInput();
@@ -43,7 +41,7 @@ public class WeatherAppTest
     {
         Home home = new Home();
         home.cityName = cityName;
-        home.state = state;
+        home.stateName = state;
 
         try
         {
@@ -63,7 +61,7 @@ public class WeatherAppTest
     {
         Home home = new Home();
         home.cityName = cityName;
-        home.state = state;
+        home.stateName = state;
 
         try
         {
@@ -89,7 +87,7 @@ public class WeatherAppTest
     {
         Home home = new Home();
         home.cityName = cityName;
-        home.state = state;
+        home.stateName = state;
 
         try
         {

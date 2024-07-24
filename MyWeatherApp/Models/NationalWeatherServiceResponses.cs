@@ -50,7 +50,8 @@ namespace MyWeatherApp.Models
     {
         public string name { get; set; }
         public int temperature { get; set; }
-        public NWSProbabilityOfPercipitation probabilityOfPercipitation { get; set; }
+        public DateTime startTime { get; set; }
+        public DateTime endTime { get; set; }
         public string windSpeed { get; set; }
         public string windDirection { get; set; }
         public string shortForecast { get; set; }
@@ -58,16 +59,6 @@ namespace MyWeatherApp.Models
 
     }
 
-    /// <summary>
-    /// Represents the National Weather Service probability of percipitation object
-    /// from the JSON of the NWS API. The variable holds the percentage possibility
-    /// of rain. 
-    /// </summary>
-    public class NWSProbabilityOfPercipitation
-    {
-        [JsonPropertyName("value")]
-        public int probability { get; set; }
-    }
     }
 
 

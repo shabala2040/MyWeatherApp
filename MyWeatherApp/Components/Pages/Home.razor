@@ -4,11 +4,18 @@
 <PageTitle>Home</PageTitle>
 <h1>Welcome to your Weather Buddy!</h1>
 <h4>To start, enter a city and select a state. Then press the GO button.</h4>
-<label>City</label>
+<h4>To see a new forecast for a different location, enter a new city and state and press the GO button again.</h4>
+
+<label>
+    City
+</label>
 <input type="text" @bind="@cityName" />
 <br />
-<label>State</label>
-<select name="stateCodes" type="text" @bind="@state">
+<br />
+<label>
+    State
+</label>
+<select @bind="@stateName">
     <option value="alabama">Alabama</option>
     <option value="alaska">Alaska</option>
     <option value="arizona">Arizona</option>
@@ -61,16 +68,119 @@
     <option value="wyoming">Wyoming</option>
 </select>
 <br />
-<button class="btn btn-primary" @onclick="ProcessInput">GO</button>
 <br />
+<button class="btn btn-primary" @onclick="ProcessInput">GO</button>
+
+<br />
+<br />
+
 @if (errorString != "")
 {
     <p>@errorString</p>
 }
+else if (hourlyForecastProps != null && futureForecastProps != null)
+{
+    <h3>12-Hour Forecast</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Time
+                </th>
+                <th>
+                    Temperature
+                </th>
+                <th>
+                    Wind Speed
+                </th>
+                <th>
+                    Wind Direction
+                </th>
+                <th>
+                    Description
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+        @for (int i = 0; i < 12; i++)
+        {
+                
+            <tr>
+                <td>
+                    @hourlyForecastProps.periods[i].startTime.ToShortTimeString()
+                </td>
+                <td>
+                    @hourlyForecastProps.periods[i].temperature&deg;
+                </td>
+                <td>
+                    @hourlyForecastProps.periods[i].windSpeed
+                </td>
+                <td>
+                    @hourlyForecastProps.periods[i].windDirection
+                </td>
+                <td>
+                    @hourlyForecastProps.periods[i].shortForecast
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <br/><br/><br/>
+    <h3>Weekly Forecast</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Name
+                </th>
+                <th>
+                    Temperature
+                </th>
+                <th>
+                    Time
+                </th>
+                <th>
+                    Wind Speed
+                </th>
+                <th>
+                    Wind Direction
+                </th>
+                <th>
+                    Description
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var period in futureForecastProps.periods)
+        {
+            <tr>
+                <td>
+                    @period.name
+                </td>
+                <td>
+                    @period.temperature&deg;
+                </td>
+                <td>
+                    @period.startTime.ToShortTimeString()
+                </td>
+                <td>
+                    @period.windSpeed
+                </td>
+                <td>
+                    @period.windDirection
+                </td>
+                <td>
+                    @period.detailedForecast
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
 
 @code {
     public string? cityName { get; set; }
-    public string? state { get; set; }
+    public string? stateName { get; set; }
     public string? errorString { get; set; } = string.Empty;
     public GeocodeMapLocation? foundLocation { get; set; }
     public NWSPointProperties? point { get; set; }
@@ -84,13 +194,14 @@
     /// - Verifies the city and state given by user match the API response
     /// - Makes an API call to NWS with the lat/lon to get relevant weather URLs
     /// - Makes API calls to NWS with the relevant weather URLs to populate page with data
-    /// - Handles any exceptions that occur
+    /// - Catches any exceptions that occur
     /// </summary>
     public void ProcessInput()
     {
         // TODO try catch will go in here
         try
         {
+            errorString = string.Empty;
             ValidateInput();
             GetLatAndLon();
             point = GetForecastURLs();
@@ -98,9 +209,9 @@
             GetFutureForecast();
 
         }
-        catch
+        catch (Exception ex)
         {
-
+            errorString = "There was something wrong with your query. Try entering a valid city and state again.";
         }
 
     }
@@ -145,7 +256,8 @@
             nwsPoint = response.Content.ReadFromJsonAsync<NWSPointProperties>().Result;
             return nwsPoint;
 
-        } else
+        }
+        else
         {
             throw new HttpRequestException(response.ReasonPhrase);
         }
@@ -166,15 +278,16 @@
         latLonClient.BaseAddress = new Uri("https://geocode.maps.co/");
 
         // Generate a response, do it synchronously, this is the only thing we care about
-        HttpResponseMessage response = latLonClient.GetAsync($"search?city={cityName.Replace(' ', '+').ToLower()}&state={state.Replace(' ', '+').ToLower()}&country=US&api_key=669f4abe7921a061435276bwl2147a6").Result;
+        HttpResponseMessage response = latLonClient.GetAsync($"search?city={cityName.Replace(' ', '+').ToLower()}&state={stateName.Replace(' ', '+').ToLower()}&country=US&api_key=669f4abe7921a061435276bwl2147a6").Result;
 
         // If we receive an unsuccessful response, throw an exception with a reason
         if (!response.IsSuccessStatusCode)
             throw new Exception(response.ReasonPhrase);
 
-        List<GeocodeMapLocation> matchedLocations = JsonSerializer.Deserialize<List<GeocodeMapLocation>>(response.Content.ReadAsStream());
         // Deserialize the response and put it in the GeocodeMaps
-        //GeocodeMaps matchedLocations = response.Content.ReadFromJsonAsync<GeocodeMaps>().Result;
+        List<GeocodeMapLocation> matchedLocations = JsonSerializer.Deserialize<List<GeocodeMapLocation>>(response.Content.ReadAsStream());
+
+        // Determines which of the potential locations is the location we were actually searching for
         GetLocation(matchedLocations);
 
 
@@ -190,14 +303,14 @@
     {
         foreach (var location in matchedLocations)
         {
-            if (location.location.ToLower().Contains(cityName.ToLower()) && location.location.ToLower().Contains(state.ToLower()))
+            if (location.location.ToLower().Contains(cityName.ToLower()) && location.location.ToLower().Contains(stateName.ToLower()))
             {
                 foundLocation = location;
                 return;
             }
         }
 
-        throw new NoLocationMatched($"A matching location was not found for {cityName}, {state}.");
+        throw new NoLocationMatched($"A matching location was not found for {cityName}, {stateName}.");
     }
 
     /// <summary>
@@ -210,7 +323,7 @@
         hourlyForecastClient.BaseAddress = new Uri("https://api.weather.gov/");
         hourlyForecastClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
         hourlyForecastClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
-        HttpResponseMessage response = hourlyForecastClient.GetAsync(point.hourlyForecast.Remove(0,24)).Result;
+        HttpResponseMessage response = hourlyForecastClient.GetAsync(point.hourlyForecast.Remove(0, 24)).Result;
 
         if (response != null && response.IsSuccessStatusCode)
         {
@@ -246,5 +359,5 @@
             throw new HttpRequestException(response.ReasonPhrase);
         }
     }
-    }
+}
 

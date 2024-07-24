@@ -5,12 +5,6 @@ namespace MyWeatherApp.Models
 
 	public class GeocodeMapLocation
 	{
-		/*public GeocodeMapLocation(string lat, string lon, string locName)
-		{
-			latitude = lat;
-			longitude = lon;
-			location = locName;
-		} */
 
 		[JsonPropertyName("lat")]
 		public string latitude { get; set; }
