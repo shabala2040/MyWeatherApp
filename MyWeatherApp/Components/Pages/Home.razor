@@ -74,6 +74,8 @@
     public string? errorString { get; set; } = string.Empty;
     public GeocodeMapLocation? foundLocation { get; set; }
     public NWSPointProperties? point { get; set; }
+    public NWSForecastProperties? hourlyForecastProps { get; set; }
+    public NWSForecastProperties? futureForecastProps { get; set; }
 
     /// <summary>
     /// Process the user input in the city name text field.
@@ -92,13 +94,14 @@
             ValidateInput();
             GetLatAndLon();
             point = GetForecastURLs();
+            GetHourlyForecast();
+            GetFutureForecast();
 
         }
         catch
         {
 
         }
-        // TODO make a bunch of calls to do all of above functions
 
     }
 
@@ -127,8 +130,6 @@
     /// <summary>
     /// Gets the NWSPoint for the given lat/lon. This is done via an API call and deserializing the resulting JSON obj
     /// </summary>
-    /// <param name="location">location object represents city and state</param>
-    /// <returns></returns>
     public NWSPointProperties GetForecastURLs()
     {
         NWSPointProperties nwsPoint;
@@ -179,11 +180,17 @@
 
     }
 
+    /// <summary>
+    /// Sets the location object to a location that matches the city and state given by user.
+    /// If no match is found, an exception is thrown.
+    /// </summary>
+    /// <param name="matchedLocations">A list of locations that were matched by the API call to geocode.maps.</param>
+    /// <exception cref="NoLocationMatched"></exception>
     public void GetLocation(List<GeocodeMapLocation> matchedLocations)
     {
         foreach (var location in matchedLocations)
         {
-            if (location.location.ToLower().Contains(cityName) && location.location.ToLower().Contains(state))
+            if (location.location.ToLower().Contains(cityName.ToLower()) && location.location.ToLower().Contains(state.ToLower()))
             {
                 foundLocation = location;
                 return;
@@ -191,6 +198,53 @@
         }
 
         throw new NoLocationMatched($"A matching location was not found for {cityName}, {state}.");
+    }
+
+    /// <summary>
+    /// Use the NWSPoint object (which contains URLs) to get the hourly forecast.
+    /// </summary>
+    /// <exception cref="HttpRequestException"></exception>
+    public void GetHourlyForecast()
+    {
+        HttpClient hourlyForecastClient = new HttpClient();
+        hourlyForecastClient.BaseAddress = new Uri("https://api.weather.gov/");
+        hourlyForecastClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
+        hourlyForecastClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
+        HttpResponseMessage response = hourlyForecastClient.GetAsync(point.hourlyForecast.Remove(0,24)).Result;
+
+        if (response != null && response.IsSuccessStatusCode)
+        {
+            hourlyForecastProps = response.Content.ReadFromJsonAsync<NWSForecastProperties>().Result;
+
+        }
+        else
+        {
+            throw new HttpRequestException(response.ReasonPhrase);
+        }
+
+    }
+
+    /// <summary>
+    /// Use the NWSPoint object (which contains URLs) to get the future forecast.
+    /// </summary>
+    /// <exception cref="HttpRequestException"></exception>
+    public void GetFutureForecast()
+    {
+        HttpClient futureForecastClient = new HttpClient();
+        futureForecastClient.BaseAddress = new Uri("https://api.weather.gov/");
+        futureForecastClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
+        futureForecastClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
+        HttpResponseMessage response = futureForecastClient.GetAsync(point.forecast.Remove(0, 24)).Result;
+
+        if (response != null && response.IsSuccessStatusCode)
+        {
+            futureForecastProps = response.Content.ReadFromJsonAsync<NWSForecastProperties>().Result;
+
+        }
+        else
+        {
+            throw new HttpRequestException(response.ReasonPhrase);
+        }
     }
     }
 

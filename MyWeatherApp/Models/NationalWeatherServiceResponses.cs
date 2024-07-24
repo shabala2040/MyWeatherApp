@@ -10,28 +10,15 @@ namespace MyWeatherApp.Models
 
 
     /// <summary>
-    /// Represents a National Weather Service Point object from the JSON of the
-    /// NWS API. All variables contain URLs that can be utilized to make subsequent
-    /// API calls.
-    /// </summary>
-    public class NWSPoint
-    {
-
-        public string forecastOffice { get; set; }
-        public string forecast { get; set; }
-        private string forecastHourly { get; set; }
-        private string fireWeatherZone { get; set; }
-
-    }
-
-    /// <summary>
     /// Represents a National Weather Service Properties object from the JSON of
     /// the NWS API. The singular variable contains a NWSPoint object.
     /// </summary>
     public class NWSPointProperties
     {
-
-        public NWSPoint properties;
+        [JsonPropertyName("forecast")]
+        public string forecast { get; set; }
+        [JsonPropertyName("forecastHourly")]
+        public string hourlyForecast { get; set; }
 
     }
 
@@ -51,7 +38,7 @@ namespace MyWeatherApp.Models
     /// </summary>
     public class NWSForecastProperties
     {
-        public List<NWSForecastPeriod> periods { get; set; }
+        public NWSForecastPeriod[] periods { get; set; }
     }
 
     /// <summary>

@@ -83,7 +83,7 @@ public class WeatherAppTest
     }
 
     [TestMethod]
-    [DataRow("boulder", "colorado")]
+    [DataRow("Boulder", "colorado")]
     [DataRow("franklin", "missouri")]
     public void GetLatLon_HappyPath(string cityName, string state)
     {
@@ -164,6 +164,121 @@ public class WeatherAppTest
             if (point == null)
             {
                 Assert.Fail("point object was not assigned");
+            }
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Unexpected exception of type {ex.GetType()}: {ex.Message}");
+        }
+    }
+
+    [TestMethod]
+    [DataRow("https://api.weather.gov/gridpoints/BOU/54,75/forecast/hourl")]
+    public void GetHourlyForecast_TestBadURLs(string hourlyForecastURL)
+    {
+        string[] reasonPhrases = { "Not Found", "Bad Request" };
+        Home home = new Home();
+        home.point = new NWSPointProperties();
+        home.point.hourlyForecast = hourlyForecastURL;
+
+        try
+        {
+            home.GetHourlyForecast();
+            Assert.Fail("An invalid hourly forecast URL was sent to the API.");
+        }
+        catch (HttpRequestException hr)
+        {
+
+            bool reasonFound = false;
+            foreach (string reason in reasonPhrases)
+            {
+                if (reason == hr.Message)
+                    reasonFound = true;
+            }
+
+            Assert.IsTrue(reasonFound);
+
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Unexpected exception of type {ex.GetType()}: {ex.Message}: {ex.Source}");
+        }
+
+    }
+
+    [TestMethod]
+    [DataRow("https://api.weather.gov/gridpoints/BOU/54,75/forecast/hourly")]
+    public void GetHourlyForecast_HappyPath(string hourlyForecastURL)
+    {
+        Home home = new Home();
+        home.point = new NWSPointProperties();
+        home.point.hourlyForecast = hourlyForecastURL;
+
+        try
+        {
+            home.GetHourlyForecast();
+
+            if (home.hourlyForecastProps == null)
+            {
+                Assert.Fail("hourlyForecastProps object was not assigned");
+            }
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Unexpected exception of type {ex.GetType()}: {ex.Message}");
+        }
+    }
+
+
+    [TestMethod]
+    [DataRow("https://api.weather.gov/gridpoints/BOU/54,75/forecas")]
+    public void GetFutureForecast_TestBadURLs(string futureForecastURL)
+    {
+        string[] reasonPhrases = { "Not Found", "Bad Request" };
+        Home home = new Home();
+        home.point = new NWSPointProperties();
+        home.point.forecast = futureForecastURL;
+
+        try
+        {
+            home.GetFutureForecast();
+            Assert.Fail("An invalid forecast URL was sent to the API.");
+        }
+        catch (HttpRequestException hr)
+        {
+
+            bool reasonFound = false;
+            foreach (string reason in reasonPhrases)
+            {
+                if (reason == hr.Message)
+                    reasonFound = true;
+            }
+
+            Assert.IsTrue(reasonFound);
+
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Unexpected exception of type {ex.GetType()}: {ex.Message}: {ex.Source}");
+        }
+
+    }
+
+    [TestMethod]
+    [DataRow("https://api.weather.gov/gridpoints/BOU/54,75/forecast")]
+    public void GetFutureForecast_HappyPath(string futureForecastURL)
+    {
+        Home home = new Home();
+        home.point = new NWSPointProperties();
+        home.point.forecast = futureForecastURL;
+
+        try
+        {
+            home.GetFutureForecast();
+
+            if (home.futureForecastProps == null)
+            {
+                Assert.Fail("futureForecastProps object was not assigned");
             }
         }
         catch (Exception ex)
