@@ -186,6 +186,8 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
     public NWSPointProperties? point { get; set; }
     public NWSForecastProperties? hourlyForecastProps { get; set; }
     public NWSForecastProperties? futureForecastProps { get; set; }
+    private Uri nwsWeatherUri = new Uri("https://api.weather.gov/");
+    private Uri geocodeMapsUri = new Uri("https://geocode.maps.co/");
 
     /// <summary>
     /// Process the user input in the city name text field.
@@ -253,7 +255,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         NWSPointProperties nwsPoint;
 
         HttpClient locationClient = new HttpClient();
-        locationClient.BaseAddress = new Uri("https://api.weather.gov/");
+        locationClient.BaseAddress = nwsWeatherUri;
         locationClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
         locationClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
         HttpResponseMessage response = locationClient.GetAsync($"/points/{foundLocation.latitude},{foundLocation.longitude}").Result;
@@ -282,7 +284,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
 
         // Generate new HttpClient, set base address for geocode.maps API
         HttpClient latLonClient = new HttpClient();
-        latLonClient.BaseAddress = new Uri("https://geocode.maps.co/");
+        latLonClient.BaseAddress = geocodeMapsUri;
 
         // Generate a response, do it synchronously, this is the only thing we care about
         HttpResponseMessage? response = latLonClient.GetAsync($"search?city={cityName.Replace(' ', '+').ToLower()}&state={stateName.Replace(' ', '+').ToLower()}&country=US&api_key=669f4abe7921a061435276bwl2147a6").Result;
@@ -322,7 +324,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             }
         }
 
-        
+
         throw new NoLocationMatched(CreateNoLocationExceptionMessage(cityName, stateName));
     }
 
@@ -333,7 +335,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
     public void GetHourlyForecast()
     {
         HttpClient hourlyForecastClient = new HttpClient();
-        hourlyForecastClient.BaseAddress = new Uri("https://api.weather.gov/");
+        hourlyForecastClient.BaseAddress = nwsWeatherUri;
         hourlyForecastClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
         hourlyForecastClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
         HttpResponseMessage response = hourlyForecastClient.GetAsync(point.hourlyForecast.Remove(0, 24)).Result;
@@ -357,7 +359,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
     public void GetFutureForecast()
     {
         HttpClient futureForecastClient = new HttpClient();
-        futureForecastClient.BaseAddress = new Uri("https://api.weather.gov/");
+        futureForecastClient.BaseAddress = nwsWeatherUri;
         futureForecastClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
         futureForecastClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
         HttpResponseMessage response = futureForecastClient.GetAsync(point.forecast.Remove(0, 24)).Result;
@@ -371,7 +373,11 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         {
             throw new HttpRequestException(response.ReasonPhrase);
         }
+
+
     }
+
+    //private void
 
     public string CreateNoLocationExceptionMessage(string city, string state)
     {
