@@ -69,7 +69,7 @@ public class WeatherAppTest
             Assert.Fail("An invalid location was sent to the API.");
         } catch (NoLocationMatched nl)
         {
-            Assert.AreEqual($"A matching location was not found for {cityName}, {state}.", nl.Message);
+                   Assert.AreEqual(home.CreateNoLocationExceptionMessage(cityName, state), nl.Message);
         } catch (Exception ex)
         {
             Assert.Fail($"Unexpected exception of type {ex.GetType()}: {ex.Message}");

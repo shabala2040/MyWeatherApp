@@ -27,3 +27,4 @@
 /Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/obj/Release/net8.0/MyWeatherApp.pdb
 /Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/obj/Release/net8.0/MyWeatherApp.genruntimeconfig.cache
 /Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/obj/Release/net8.0/ref/MyWeatherApp.dll
+/Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherApp/obj/Release/net8.0/MyWeatherApp.sourcelink.json

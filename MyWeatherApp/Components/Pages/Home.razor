@@ -180,7 +180,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
 
 @code {
     public string? cityName { get; set; }
-    public string? stateName { get; set; }
+    public string? stateName { get; set; } = "alabama";
     public string? errorString { get; set; } = string.Empty;
     public GeocodeMapLocation? foundLocation { get; set; }
     public NWSPointProperties? point { get; set; }
@@ -208,6 +208,13 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             GetHourlyForecast();
             GetFutureForecast();
 
+        } catch (NoLocationMatched nl)
+        {
+            errorString = nl.Message;
+
+        } catch (InvalidCityOrStateException ic)
+        {
+            errorString = ic.Message;
         }
         catch (Exception ex)
         {
@@ -278,7 +285,12 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         latLonClient.BaseAddress = new Uri("https://geocode.maps.co/");
 
         // Generate a response, do it synchronously, this is the only thing we care about
-        HttpResponseMessage response = latLonClient.GetAsync($"search?city={cityName.Replace(' ', '+').ToLower()}&state={stateName.Replace(' ', '+').ToLower()}&country=US&api_key=669f4abe7921a061435276bwl2147a6").Result;
+        HttpResponseMessage? response = latLonClient.GetAsync($"search?city={cityName.Replace(' ', '+').ToLower()}&state={stateName.Replace(' ', '+').ToLower()}&country=US&api_key=669f4abe7921a061435276bwl2147a6").Result;
+
+        if (response == null)
+        {
+            throw new NoLocationMatched(CreateNoLocationExceptionMessage(cityName, stateName));
+        }
 
         // If we receive an unsuccessful response, throw an exception with a reason
         if (!response.IsSuccessStatusCode)
@@ -310,7 +322,8 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             }
         }
 
-        throw new NoLocationMatched($"A matching location was not found for {cityName}, {stateName}.");
+        
+        throw new NoLocationMatched(CreateNoLocationExceptionMessage(cityName, stateName));
     }
 
     /// <summary>
@@ -358,6 +371,43 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         {
             throw new HttpRequestException(response.ReasonPhrase);
         }
+    }
+
+    public string CreateNoLocationExceptionMessage(string city, string state)
+    {
+        string[] cityStrings = city.Split(' ');
+        string[] stateStrings = state.Split(' ');
+
+        for (int i = 0; i < stateStrings.Length; i++)
+        {
+            StringBuilder stateBuilder = new StringBuilder(stateStrings[i]);
+            stateBuilder[0] = Char.ToUpper(stateBuilder[0]);
+            stateStrings[i] = stateBuilder.ToString();
+        }
+
+        for (int i = 0; i < cityStrings.Length; i++)
+        {
+            StringBuilder cityBuilder = new StringBuilder(cityStrings[i]);
+            cityBuilder[0] = Char.ToUpper(cityBuilder[0]);
+            cityStrings[i] = cityBuilder.ToString();
+        }
+
+        city = string.Empty;
+        for (int i = 0; i < cityStrings.Length - 1; i++)
+        {
+            city += cityStrings[i] + " ";
+        }
+        city += cityStrings[cityStrings.Length - 1];
+
+        state = string.Empty;
+        for (int i = 0; i < stateStrings.Length - 1; i++)
+        {
+            state += stateStrings[i] + " ";
+        }
+        state += stateStrings[stateStrings.Length - 1];
+
+
+        return $"A matching location was not found for {city}, {state}.";
     }
 }
 

@@ -117,3 +117,4 @@
 /Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherAppTests/obj/Debug/net8.0/MyWeatherAppTests.pdb
 /Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherAppTests/obj/Debug/net8.0/MyWeatherAppTests.genruntimeconfig.cache
 /Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherAppTests/obj/Debug/net8.0/ref/MyWeatherAppTests.dll
+/Users/chelseaberger/Projects/MyWeatherAppTests/MyWeatherAppTests/obj/Debug/net8.0/MyWeatherAppTests.sourcelink.json

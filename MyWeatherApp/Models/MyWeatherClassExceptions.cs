@@ -1,5 +1,4 @@
-﻿using System;
-namespace MyWeatherApp.Models
+﻿namespace MyWeatherApp.Models
 {
     public class InvalidCityOrStateException : Exception
     {
@@ -13,6 +12,7 @@ namespace MyWeatherApp.Models
         public NoLocationMatched() { }
 
         public NoLocationMatched(string message) : base(message) { }
+
     }
 
 
