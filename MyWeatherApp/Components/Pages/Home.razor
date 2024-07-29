@@ -103,8 +103,8 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         </thead>
         <tbody>
         @for (int i = 0; i < 12; i++)
-        {
-                
+            {
+
             <tr>
                 <td>
                     @hourlyForecastProps.periods[i].startTime.ToShortTimeString()
@@ -122,7 +122,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
                     @hourlyForecastProps.periods[i].shortForecast
                 </td>
             </tr>
-        }
+            }
         </tbody>
     </table>
     <br/><br/><br/>
@@ -134,7 +134,10 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
                     Name
                 </th>
                 <th>
-                    Temperature
+                    High
+                </th>
+                <th>
+                    Low
                 </th>
                 <th>
                     Time
@@ -151,29 +154,46 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             </tr>
         </thead>
         <tbody>
-        @foreach (var period in futureForecastProps.periods)
-        {
+        @for (int i = 0; i < futureForecastProps.periods.Length; i++)
+            {
             <tr>
                 <td>
-                    @period.name
+                    @futureForecastProps.periods[i].name
+                </td>
+                @if (futureForecastProps.periods[i].GetHighTemp() == null)
+                    {
+                    <td>Unknown</td>
+                    }
+                    else
+                    {
+                    <td>
+                        @futureForecastProps.periods[i].GetHighTemp()&deg;
+                    </td>
+                    }
+                @if (futureForecastProps.periods[i].GetLowTemp() == null)
+                    {
+                    <td>Unknown</td>
+                    }
+                    else
+                    {
+                    <td>
+                        @futureForecastProps.periods[i].GetLowTemp()&deg;
+                    </td>
+                    }
+                <td>
+                    @futureForecastProps.periods[i].startTime.ToShortTimeString()
                 </td>
                 <td>
-                    @period.temperature&deg;
+                    @futureForecastProps.periods[i].windSpeed
                 </td>
                 <td>
-                    @period.startTime.ToShortTimeString()
+                    @futureForecastProps.periods[i].windDirection
                 </td>
                 <td>
-                    @period.windSpeed
-                </td>
-                <td>
-                    @period.windDirection
-                </td>
-                <td>
-                    @period.detailedForecast
+                    @futureForecastProps.periods[i].detailedForecast
                 </td>
             </tr>
-        }
+            }
         </tbody>
     </table>
 }
@@ -218,6 +238,23 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         {
             errorString = ic.Message;
         }
+        catch (HttpRequestException hr)
+        {
+                if (hr.Message == "Too Many Requests")
+            {
+                    errorString = "Number of requests exceeded the API's limit. Try your request again.";
+            } else if (hr.Message == "Bad Request")
+            {
+                    errorString = "Request was poorly formed. Contact the website designer.";
+            } else if (hr.Message == "Not Found")
+            {
+                    errorString = "There was something wrong with your query. Check the spelling of the city name and try again.";
+            }
+            else
+            {
+                errorString = "There was a problem with the API call. Please try again.";
+            }
+        }
         catch (Exception ex)
         {
             errorString = "There was something wrong with your query. Try entering a valid city and state again.";
@@ -245,6 +282,8 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             if (!Char.IsAsciiLetter(letter) && letter != '.' && letter != '\'' && letter != '-' && !Char.IsWhiteSpace(letter))
                 throw new InvalidCityOrStateException($"Invalid city name.");
         }
+
+        ExpandCommonCityAbbreviations();
     }
 
     /// <summary>
@@ -263,6 +302,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         if (response != null && response.IsSuccessStatusCode)
         {
             nwsPoint = response.Content.ReadFromJsonAsync<NWSPointProperties>().Result;
+            RemoveUrlPrefixFromForecast(ref nwsPoint);
             return nwsPoint;
 
         }
@@ -338,7 +378,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         hourlyForecastClient.BaseAddress = nwsWeatherUri;
         hourlyForecastClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
         hourlyForecastClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
-        HttpResponseMessage response = hourlyForecastClient.GetAsync(point.hourlyForecast.Remove(0, 24)).Result;
+        HttpResponseMessage response = hourlyForecastClient.GetAsync(point.hourlyForecast).Result;
 
         if (response != null && response.IsSuccessStatusCode)
         {
@@ -362,7 +402,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
         futureForecastClient.BaseAddress = nwsWeatherUri;
         futureForecastClient.DefaultRequestHeaders.UserAgent.ParseAdd("chelseaberger13gmail.com");
         futureForecastClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/ld+json"));
-        HttpResponseMessage response = futureForecastClient.GetAsync(point.forecast.Remove(0, 24)).Result;
+        HttpResponseMessage response = futureForecastClient.GetAsync(point.forecast).Result;
 
         if (response != null && response.IsSuccessStatusCode)
         {
@@ -374,16 +414,77 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             throw new HttpRequestException(response.ReasonPhrase);
         }
 
+        // Fill in the high temp and low temp values in the forecast
+        GetForecastHighsAndLows();
+
 
     }
 
-    //private void
+    /// <summary>
+    /// Fill in the forecasted highs and lows from the periods received from querying NWS API for forecast.
+    /// A period where isDaytime == true, gives the high temp. A period where isDaytime == false, gives the low temp.
+    /// There are two different scenarios: either the periods come in and start with a isDaytime == true (meaning we have a 
+    /// high as the first in the data set returned to us) or periods start with isDaytime == false (meaning we have
+    /// a low as the first in the data set returned to us). In the case of isDaytime == true, we will have highs and lows for all
+    /// days in the period. This is the simplest case. In the case of isDaytime == false, we will only have a low for the first day
+    /// in the period, and only have a high for the last day in the period. The rest of the days in the period will have a high
+    /// and a low.
+    /// For days that have both a high and a low, start with the first period object of the two periods. Use the temperature
+    /// in the first period to set the high, use the temperature in the second period to set the low. Iterate through the
+    /// periods two at a time. 
+    /// </summary>
+    private void GetForecastHighsAndLows()
+    {
 
+        // first in period has isDaytime == true, simple parsing, sets highs and lows for period[i] and period[i+1]
+        if (futureForecastProps.periods[0].isDaytime)
+        {
+            for (int i = 0; i < futureForecastProps.periods.Length; i += 2)
+            {
+                futureForecastProps.periods[i].SetLowTemp(futureForecastProps.periods[i + 1].temperature);
+                futureForecastProps.periods[i].SetHighTemp(futureForecastProps.periods[i].temperature);
+                futureForecastProps.periods[i + 1].SetHighTemp(futureForecastProps.periods[i].temperature);
+                futureForecastProps.periods[i + 1].SetLowTemp(futureForecastProps.periods[i + 1].temperature);
+
+            }
+        } else
+        {
+
+            // first in period has isDaytime == false, parse the first period then iterate through the list
+            // starting at element 1
+            futureForecastProps.periods[0].SetLowTemp(futureForecastProps.periods[0].temperature);
+
+            for (int i = 1; i < futureForecastProps.periods.Length - 1; i += 2)
+            {
+                futureForecastProps.periods[i].SetLowTemp(futureForecastProps.periods[i + 1].temperature);
+                futureForecastProps.periods[i].SetHighTemp(futureForecastProps.periods[i].temperature);
+                futureForecastProps.periods[i + 1].SetHighTemp(futureForecastProps.periods[i].temperature);
+                futureForecastProps.periods[i + 1].SetLowTemp(futureForecastProps.periods[i + 1].temperature);
+
+            }
+
+            // The last element will only have a low high in this case, so set that last
+            int periodsLength = futureForecastProps.periods.Length;
+            futureForecastProps.periods[periodsLength - 1].SetHighTemp(futureForecastProps.periods[periodsLength - 1].temperature);
+
+        }
+
+    }
+
+    /// <summary>
+    /// Returns an error message to be used by the NoLocationFoundException.
+    /// This is done separately because the message capitalizes the name of the city and state properly, which takes
+    /// some additional logic that would clog up other parts of code. 
+    /// </summary>
+    /// <param name="city">city name of location</param>
+    /// <param name="state">state name of location</param>
+    /// <returns>returns an error string that is ready to be used by the NoLocationFoundException</returns>
     public string CreateNoLocationExceptionMessage(string city, string state)
     {
         string[] cityStrings = city.Split(' ');
         string[] stateStrings = state.Split(' ');
 
+        // Capitalize the first letter of each word in the state name
         for (int i = 0; i < stateStrings.Length; i++)
         {
             StringBuilder stateBuilder = new StringBuilder(stateStrings[i]);
@@ -391,6 +492,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             stateStrings[i] = stateBuilder.ToString();
         }
 
+        // Capitalize the first letter of each word in the city name
         for (int i = 0; i < cityStrings.Length; i++)
         {
             StringBuilder cityBuilder = new StringBuilder(cityStrings[i]);
@@ -398,6 +500,7 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
             cityStrings[i] = cityBuilder.ToString();
         }
 
+        // Convert the string arrays back into just a singular string
         city = string.Empty;
         for (int i = 0; i < cityStrings.Length - 1; i++)
         {
@@ -415,5 +518,69 @@ else if (hourlyForecastProps != null && futureForecastProps != null)
 
         return $"A matching location was not found for {city}, {state}.";
     }
-}
+
+    /// <summary>
+    /// When we get the nwsPoint object back from the GET call, it has the https://api.weather.gov/ prefixed to the URL.
+    /// This is already assumed when we are using the object, so we want to remove it.
+    /// Sets the value of forecast and hourlyForecast to just the parameters of their URI
+    /// </summary>
+    /// <param name="myPoint">point object that we would like to remove the prefix from</param>
+    private void RemoveUrlPrefixFromForecast(ref NWSPointProperties myPoint)
+    {
+        if (myPoint.forecast.Contains(nwsWeatherUri.ToString()))
+            myPoint.forecast = myPoint.forecast.Remove(0, 24);
+
+        if (myPoint.hourlyForecast.Contains(nwsWeatherUri.ToString()))
+            myPoint.hourlyForecast = myPoint.hourlyForecast.Remove(0, 24);
+    }
+
+
+    /// <summary>
+    /// This function checks the city name for common abbreviations and replaces them with their expanded word.
+    /// This aids in accurately finding locations.
+    /// Source for common abbreviations:
+    /// https://developer.cybersource.com/docs/cybs/en-us/tax-calculation/developer/all/rest/tax-calculation/tax-info-city-abbrevs.html
+    /// The above is not an exhaustive list, and some were not implemented based on their unlikeliness to appear
+    /// </summary>
+    private void ExpandCommonCityAbbreviations()
+    {
+        string lowerCaseCityName = cityName.ToLower();
+        if (lowerCaseCityName.Contains("st."))
+        {
+            //lowerCaseCityName = lowerCaseCityName.Replace("st.", "saint");
+            cityName = lowerCaseCityName.Replace("st.", "saint");
+        }
+        else if (lowerCaseCityName.Contains("bch"))
+        {
+            lowerCaseCityName.Replace("bch.", "beach");
+            cityName = lowerCaseCityName;
+        }
+        else if (lowerCaseCityName.Contains("crk"))
+        {
+            lowerCaseCityName.Replace("crk.", "creek");
+            cityName = lowerCaseCityName;
+        }
+        else if (lowerCaseCityName.Contains("cty"))
+        {
+            lowerCaseCityName.Replace("cty.", "city");
+            cityName = lowerCaseCityName;
+        }
+        else if (lowerCaseCityName.Contains("cyn"))
+        {
+            lowerCaseCityName.Replace("cyn.", "canyon");
+            cityName = lowerCaseCityName;
+        }
+        else if (lowerCaseCityName.Contains("ft."))
+        {
+            lowerCaseCityName.Replace("ft.", "fort");
+            cityName = lowerCaseCityName;
+        }
+        else if (lowerCaseCityName.Contains("mt."))
+        {
+            lowerCaseCityName.Replace("mt.", "mount");
+            cityName = lowerCaseCityName;
+        }
+    }
+
+    }
 

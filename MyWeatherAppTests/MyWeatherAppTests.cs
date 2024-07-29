@@ -113,7 +113,7 @@ public class WeatherAppTest
     [DataRow("0", "0", "testing")]
     public void GetForecastURLs_TestInvalidLatLon(string lat, string lon, string locationName)
     {
-        string[] reasonPhrases = { "Not Found", "Bad Request" };
+        string[] reasonPhrases = { "Not Found", "Bad Request" , "Too Many Requests"};
         Home home = new Home();
         home.foundLocation = new GeocodeMapLocation();
         home.foundLocation.latitude = lat;
@@ -174,7 +174,7 @@ public class WeatherAppTest
     [DataRow("https://api.weather.gov/gridpoints/BOU/54,75/forecast/hourl")]
     public void GetHourlyForecast_TestBadURLs(string hourlyForecastURL)
     {
-        string[] reasonPhrases = { "Not Found", "Bad Request" };
+        string[] reasonPhrases = { "Not Found", "Bad Request", "Too Many Requests"};
         Home home = new Home();
         home.point = new NWSPointProperties();
         home.point.hourlyForecast = hourlyForecastURL;

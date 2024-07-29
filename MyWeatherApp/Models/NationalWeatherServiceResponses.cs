@@ -56,6 +56,29 @@ namespace MyWeatherApp.Models
         public string windDirection { get; set; }
         public string shortForecast { get; set; }
         public string detailedForecast { get; set; }
+        public bool isDaytime { get; set; }
+        private int? highTemp;
+        private int? lowTemp;
+
+        public void SetHighTemp(int high)
+        {
+            highTemp = high;
+        }
+
+        public void SetLowTemp(int low)
+        {
+            lowTemp = low;
+        }
+
+        public int? GetHighTemp()
+        {
+            return highTemp;
+        }
+
+        public int? GetLowTemp()
+        {
+            return lowTemp;
+        }
 
     }
 
